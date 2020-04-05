@@ -8,6 +8,7 @@ using namespace std;
 using sf::Sprite;
 using sf::Texture;
 using sf::Vector2f;
+using sf::Vector2i;
 int main()
 {
     //load window
@@ -29,18 +30,54 @@ int main()
     } };
     while (window.isOpen()) {
         sf::Event event;
+        Vector2i mousePos = sf::Mouse::getPosition(window);
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
         }
         window.clear();
         //draw background
+        auto tileRevealed = Sprite(TextureManager::texture["tile_revealed"]);
         for (unsigned j = 0; j < 512; j += 32) {
             for (unsigned i = 0; i < window.getSize().x; i += 32) {
-                auto tmp = Sprite(TextureManager::texture["tile_revealed"]);
-                tmp.setPosition(i, j);
-                window.draw(tmp);
+                tileRevealed.setPosition(i, j);
+                window.draw(tileRevealed);
             }
+        }
+        //draw non-variant buttons
+        auto faceHappy = Sprite(TextureManager::texture["face_happy"]);
+        auto test1 = Sprite(TextureManager::texture["test_1"]);
+        auto test2 = Sprite(TextureManager::texture["test_2"]);
+        auto test3 = Sprite(TextureManager::texture["test_3"]);
+        auto debug = Sprite(TextureManager::texture["debug"]);
+        int botPosX = 560; //position of test 1 botton
+        faceHappy.setPosition(400 - 32, 512);
+        debug.setPosition(botPosX - 64, 512);
+        test1.setPosition(botPosX, 512);
+        test2.setPosition(botPosX + 64, 512);
+        test3.setPosition(botPosX + 64 + 64, 512);
+        window.draw(faceHappy);
+        window.draw(debug);
+        window.draw(test1);
+        window.draw(test2);
+        window.draw(test3);
+        //mouse operation on bottons
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+            auto checkBot = [&](Sprite sp, int num, bool test = true) {
+                auto spBound = sp.getGlobalBounds();
+                if (spBound.contains(Vector2f(mousePos))) {
+                    if (test) {
+                        loadBrd(num);
+                    }
+                    else {
+                        board = array<array<bool, 25>, 16>{};
+                    }
+                }
+            };
+            checkBot(test1, 1);
+            checkBot(test2, 2);
+            checkBot(test3, 3);
+            checkBot(faceHappy, 1 ,false);
         }
         //draw mine
         for (unsigned j = 0; j < 16; ++j) {
