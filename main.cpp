@@ -1,5 +1,6 @@
 #include "TextureManager.h"
 #include <SFML/Graphics.hpp>
+#include <algorithm>
 #include <array>
 #include <fstream>
 #include <iostream>
@@ -18,7 +19,7 @@ int main()
     for (auto s : textureName) {
         TextureManager::loadTexture(s);
     }
-    //board for
+    //load board from file
     array<array<bool, 25>, 16> board{};
     auto loadBrd = [&board](int brdNum) { ifstream brd("boards/testboard" + to_string(brdNum) + ".brd"); 
     for(auto &j:board){
@@ -28,6 +29,20 @@ int main()
             tmp == '0' ? i = false:i = true;
         }
     } };
+    //randomize initialze board
+    auto randMap = [&board](int mineNum = 40) {
+        array<bool, 400> origin{};
+        for (int i = 0; i < mineNum; ++i) {
+            origin[i] = true;
+        }
+        random_shuffle(origin.begin(), origin.end());
+        for (int k = 0; k < 400; ++k) {
+            int j = k / 25;
+            int i = k % 25;
+            board[j][i] = origin[k];
+        }
+    };
+    randMap();
     while (window.isOpen()) {
         sf::Event event;
         Vector2i mousePos = sf::Mouse::getPosition(window);
@@ -70,14 +85,14 @@ int main()
                         loadBrd(num);
                     }
                     else {
-                        board = array<array<bool, 25>, 16>{};
+                        randMap();
                     }
                 }
             };
             checkBot(test1, 1);
             checkBot(test2, 2);
             checkBot(test3, 3);
-            checkBot(faceHappy, 1 ,false);
+            checkBot(faceHappy, 1, false);
         }
         //draw mine
         for (unsigned j = 0; j < 16; ++j) {
