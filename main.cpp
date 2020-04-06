@@ -4,18 +4,33 @@
 #include <array>
 #include <fstream>
 #include <iostream>
+#include <stack>
 #include <vector>
 using namespace std;
 using sf::Sprite;
 using sf::Texture;
 using sf::Vector2f;
 using sf::Vector2i;
+enum Digits { zero,
+              one,
+              two,
+              three,
+              four,
+              five,
+              six,
+              seven,
+              eight,
+              nine,
+              negative
+};
 int main()
 {
     //load window
     sf::RenderWindow window(sf::VideoMode(800, 600), "Minesweeper");
     //load texture
     array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
+    //number of flag
+    int flagNum{};
     for (auto s : textureName) {
         TextureManager::loadTexture(s);
     }
@@ -43,9 +58,66 @@ int main()
         }
     };
     randMap();
+    //lambda to draw mine
+    auto drawMine = [&]() {
+        for (unsigned y = 0; y < 16; ++y) {
+            for (unsigned x = 0; x < 25; ++x) {
+                if (board[y][x]) {
+                    auto mine = Sprite(TextureManager::texture["mine"]);
+                    mine.setPosition(x * 32, y * 32);
+                    window.draw(mine);
+                }
+            }
+    } };
+    //lambda to draw 1 number with given y axis
+    auto drawNum = [&](Digits digit, int xAis, int yAxis = 512) {
+        auto nums = Sprite(TextureManager::texture["digits"]);
+        nums.setTextureRect(sf::IntRect(digit * 21, 0, 21, 32));
+        nums.setPosition(xAis, yAxis);
+        window.draw(nums);
+    };
+    //lambda to draw number in minecounter(depends on drawNum)
+    auto drawCounter = [&](int mineCnt) {
+        int xAxis{};
+        stack<int> sd;
+        if (mineCnt < 0) {
+            mineCnt = -mineCnt;
+            drawNum(negative, xAxis);
+            xAxis += 21;
+        }
+        //make sure there's 3 digit available
+        for (unsigned i = 0; i < 3; ++i) {
+            int digit = mineCnt % 10;
+            mineCnt /= 10;
+            if (digit) {
+                sd.push(digit);
+            }
+            else {
+                sd.push(0);
+            }
+        }
+        while (!sd.empty()) {
+            int digit = sd.top();
+            sd.pop();
+            drawNum((Digits)digit, xAxis);
+            xAxis += 21;
+        }
+    };
     while (window.isOpen()) {
         sf::Event event;
         Vector2i mousePos = sf::Mouse::getPosition(window);
+        bool debugMode{};
+        //lambda to get mine count
+        auto getMineCount = [board]() {
+            int cnt{};
+            for (auto row : board) {
+                for (auto i : row) {
+                    if (i)
+                        ++cnt;
+                }
+            }
+            return cnt;
+        };
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
@@ -53,9 +125,9 @@ int main()
         window.clear();
         //draw background
         auto tileRevealed = Sprite(TextureManager::texture["tile_revealed"]);
-        for (unsigned j = 0; j < 512; j += 32) {
-            for (unsigned i = 0; i < window.getSize().x; i += 32) {
-                tileRevealed.setPosition(i, j);
+        for (unsigned y = 0; y < 512; y += 32) {
+            for (unsigned x = 0; x < window.getSize().x; x += 32) {
+                tileRevealed.setPosition(x, y);
                 window.draw(tileRevealed);
             }
         }
@@ -76,33 +148,35 @@ int main()
         window.draw(test1);
         window.draw(test2);
         window.draw(test3);
+        //draw mine count
+        drawCounter(getMineCount() - flagNum);
         //mouse operation on bottons
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-            auto checkBot = [&](Sprite sp, int num, bool test = true) {
+            auto checkBotton = [&](Sprite sp, int num, bool reset = false, bool debugButton = false) {
                 auto spBound = sp.getGlobalBounds();
                 if (spBound.contains(Vector2f(mousePos))) {
-                    if (test) {
+                    if (!reset && !debugButton) {
                         loadBrd(num);
                     }
-                    else {
+                    else if (reset && !debugButton) {
                         randMap();
+                    }
+                    else if (debugButton) {
+                        debugMode = true;
                     }
                 }
             };
-            checkBot(test1, 1);
-            checkBot(test2, 2);
-            checkBot(test3, 3);
-            checkBot(faceHappy, 1, false);
+            checkBotton(test1, 1);
+            checkBotton(test2, 2);
+            checkBotton(test3, 3);
+            checkBotton(faceHappy, 1, true);
+            checkBotton(debug, 1, false, true);
         }
         //draw mine
-        for (unsigned j = 0; j < 16; ++j) {
-            for (unsigned i = 0; i < 25; ++i) {
-                if (board[j][i]) {
-                    auto mine = Sprite(TextureManager::texture["mine"]);
-                    mine.setPosition(i * 32, j * 32);
-                    window.draw(mine);
-                }
-            }
+        drawMine();
+        //debug mode
+        if (debugMode) {
+            drawMine();
         }
         window.display();
     }
