@@ -1,4 +1,4 @@
-#include "TextureManager.h"
+#include "util.h"
 #include <SFML/Graphics.hpp>
 #include <algorithm>
 #include <array>
@@ -11,26 +11,17 @@ using sf::Sprite;
 using sf::Texture;
 using sf::Vector2f;
 using sf::Vector2i;
-enum Digits { zero,
-              one,
-              two,
-              three,
-              four,
-              five,
-              six,
-              seven,
-              eight,
-              nine,
-              negative
-};
 int main()
 {
     //load window
     sf::RenderWindow window(sf::VideoMode(800, 600), "Minesweeper");
-    //load texture
+    //texture name
     array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
     //number of flag
     int flagNum{};
+    //debug mode
+    bool debugMode{};
+    //load texture
     for (auto s : textureName) {
         TextureManager::loadTexture(s);
     }
@@ -106,7 +97,6 @@ int main()
     while (window.isOpen()) {
         sf::Event event;
         Vector2i mousePos = sf::Mouse::getPosition(window);
-        bool debugMode{};
         //lambda to get mine count
         auto getMineCount = [board]() {
             int cnt{};
@@ -162,7 +152,7 @@ int main()
                         randMap();
                     }
                     else if (debugButton) {
-                        debugMode = true;
+                        debugMode = !debugMode;
                     }
                 }
             };
