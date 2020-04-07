@@ -17,26 +17,35 @@ int main()
     sf::RenderWindow window(sf::VideoMode(800, 600), "Minesweeper");
     //texture name
     array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
-    //number of flag
-    int flagNum{};
     //debug mode
     bool debugMode{};
     //load texture
     for (auto s : textureName) {
         TextureManager::loadTexture(s);
     }
+    Texture mine = TextureManager::texture["mine"];
+    Texture flag = TextureManager::texture["flag"];
+    Texture tileHidden = TextureManager::texture["tile_hidden"];
     //load board from file
-    array<array<bool, 25>, 16> board{};
-    auto loadBrd = [&board](int brdNum) { ifstream brd("boards/testboard" + to_string(brdNum) + ".brd"); 
-    for(auto &j:board){
-        for(auto &i:j){
-            char tmp;
-            brd >> tmp;
-            tmp == '0' ? i = false:i = true;
+    array<array<bool, 25>, 16> board{}, flags{}, fullBoard{};
+    for (auto &row : fullBoard) {
+        for (auto &item : row) {
+            item = true;
         }
-    } };
+    }
+    auto loadBrd = [&](int brdNum) {
+        ifstream brd("boards/testboard" + to_string(brdNum) + ".brd");
+        for (auto &j : board) {
+            for (auto &i : j) {
+                char tmp;
+                brd >> tmp;
+                tmp == '0' ? i = false : i = true;
+            }
+        }
+        flags = array<array<bool, 25>, 16>{};
+    };
     //randomize initialze board
-    auto randMap = [&board](int mineNum = 40) {
+    auto randMap = [&](int mineNum = 40) {
         array<bool, 400> origin{};
         for (int i = 0; i < mineNum; ++i) {
             origin[i] = true;
@@ -47,16 +56,17 @@ int main()
             int i = k % 25;
             board[j][i] = origin[k];
         }
+        flags = array<array<bool, 25>, 16>{};
     };
     randMap();
-    //lambda to draw mine
-    auto drawMine = [&]() {
+    //lambda to draw given texture with given array
+    auto drawGeneric = [&](Texture text, array<array<bool, 25>, 16> toDraw) {
         for (unsigned y = 0; y < 16; ++y) {
             for (unsigned x = 0; x < 25; ++x) {
-                if (board[y][x]) {
-                    auto mine = Sprite(TextureManager::texture["mine"]);
-                    mine.setPosition(x * 32, y * 32);
-                    window.draw(mine);
+                if (toDraw[y][x]) {
+                    auto spirit = Sprite(text);
+                    spirit.setPosition(x * 32, y * 32);
+                    window.draw(spirit);
                 }
             }
     } };
@@ -98,9 +108,9 @@ int main()
         sf::Event event;
         Vector2i mousePos = sf::Mouse::getPosition(window);
         //lambda to get mine count
-        auto getMineCount = [board]() {
+        auto getCount = [](array<array<bool, 25>, 16> cntBoard) {
             int cnt{};
-            for (auto row : board) {
+            for (auto row : cntBoard) {
                 for (auto i : row) {
                     if (i)
                         ++cnt;
@@ -114,13 +124,8 @@ int main()
         }
         window.clear();
         //draw background
-        auto tileRevealed = Sprite(TextureManager::texture["tile_revealed"]);
-        for (unsigned y = 0; y < 512; y += 32) {
-            for (unsigned x = 0; x < window.getSize().x; x += 32) {
-                tileRevealed.setPosition(x, y);
-                window.draw(tileRevealed);
-            }
-        }
+        auto tileRevealed = TextureManager::texture["tile_revealed"];
+        drawGeneric(tileRevealed, fullBoard);
         //draw non-variant buttons
         auto faceHappy = Sprite(TextureManager::texture["face_happy"]);
         auto test1 = Sprite(TextureManager::texture["test_1"]);
@@ -139,7 +144,7 @@ int main()
         window.draw(test2);
         window.draw(test3);
         //draw mine count
-        drawCounter(getMineCount() - flagNum);
+        drawCounter(getCount(board) - getCount(flags));
         //mouse operation on bottons
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
             auto checkBotton = [&](Sprite sp, int num, bool reset = false, bool debugButton = false) {
@@ -163,10 +168,18 @@ int main()
             checkBotton(debug, 1, false, true);
         }
         //draw mine
-        drawMine();
+        drawGeneric(mine, board);
+        //draw flag
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+            int rowNum = mousePos.x / 32;
+            int colNum = mousePos.y / 32;
+            flags[colNum][rowNum] = !flags[colNum][rowNum];
+        }
+        drawGeneric(tileHidden, flags);
+        drawGeneric(flag, flags);
         //debug mode
         if (debugMode) {
-            drawMine();
+            drawGeneric(mine, board);
         }
         window.display();
     }
