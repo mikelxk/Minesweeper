@@ -26,6 +26,7 @@ int main()
     Texture mine = TextureManager::texture["mine"];
     Texture flag = TextureManager::texture["flag"];
     Texture tileHidden = TextureManager::texture["tile_hidden"];
+    Texture tileRevealed = TextureManager::texture["tile_revealed"];
     //load board from file
     array<array<bool, 25>, 16> board{}, flags{}, fullBoard{};
     for (auto &row : fullBoard) {
@@ -35,8 +36,8 @@ int main()
     }
     auto loadBrd = [&](int brdNum) {
         ifstream brd("boards/testboard" + to_string(brdNum) + ".brd");
-        for (auto &j : board) {
-            for (auto &i : j) {
+        for (auto &row : board) {
+            for (auto &i : row) {
                 char tmp;
                 brd >> tmp;
                 tmp == '0' ? i = false : i = true;
@@ -60,7 +61,7 @@ int main()
     };
     randMap();
     //lambda to draw given texture with given array
-    auto drawGeneric = [&](Texture text, array<array<bool, 25>, 16> toDraw) {
+    auto drawGeneric = [&](Texture &text, array<array<bool, 25>, 16> &toDraw) {
         for (unsigned y = 0; y < 16; ++y) {
             for (unsigned x = 0; x < 25; ++x) {
                 if (toDraw[y][x]) {
@@ -124,7 +125,6 @@ int main()
         }
         window.clear();
         //draw background
-        auto tileRevealed = TextureManager::texture["tile_revealed"];
         drawGeneric(tileRevealed, fullBoard);
         //draw non-variant buttons
         auto faceHappy = Sprite(TextureManager::texture["face_happy"]);
