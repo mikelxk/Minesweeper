@@ -29,37 +29,12 @@ int main()
     Texture tileRevealed = TextureManager::texture["tile_revealed"];
     //load board from file
     array<array<bool, 25>, 16> board{}, flags{}, fullBoard{};
+    array<array<int, 25>, 16> adjMine{};
     for (auto &row : fullBoard) {
         for (auto &item : row) {
             item = true;
         }
     }
-    auto loadBrd = [&](int brdNum) {
-        ifstream brd("boards/testboard" + to_string(brdNum) + ".brd");
-        for (auto &row : board) {
-            for (auto &i : row) {
-                char tmp;
-                brd >> tmp;
-                tmp == '0' ? i = false : i = true;
-            }
-        }
-        flags = array<array<bool, 25>, 16>{};
-    };
-    //randomize initialze board
-    auto randMap = [&](int mineNum = 40) {
-        array<bool, 400> origin{};
-        for (int i = 0; i < mineNum; ++i) {
-            origin[i] = true;
-        }
-        random_shuffle(origin.begin(), origin.end());
-        for (int k = 0; k < 400; ++k) {
-            int j = k / 25;
-            int i = k % 25;
-            board[j][i] = origin[k];
-        }
-        flags = array<array<bool, 25>, 16>{};
-    };
-    randMap();
     //lambda to draw given texture with given array
     auto drawGeneric = [&](Texture &text, array<array<bool, 25>, 16> &toDraw) {
         for (unsigned y = 0; y < 16; ++y) {
@@ -71,6 +46,44 @@ int main()
                 }
             }
     } };
+    //lambda to draw numbers on board
+    auto drawMineCnt = [&](int num, int xAxis, int yAxis) {
+        auto numSpirit = Sprite(TextureManager::texture["number_" + to_string(num)]);
+        numSpirit.setPosition(xAxis, yAxis);
+        window.draw(numSpirit);
+    };
+    //lambda to add adjacent counter
+    auto addAdj = [&]() {
+        auto checkAdd = [&](int yAxis,int xAxis){
+            if(xAxis>=0&&xAxis<25&&yAxis>=0&&yAxis<16) {
+                ++adjMine[yAxis][xAxis];
+            }
+        };
+        for (int y = 0; y < 16; ++y) {
+            for (int x = 0; x < 25; ++x) {
+                if (board[y][x]) {
+                    //make it 9 an unreachable value
+                    adjMine[y][x] = 9;
+                    checkAdd(y - 1, x - 1);
+                    checkAdd(y - 1, x);
+                    checkAdd(y - 1, x + 1);
+                    checkAdd(y, x - 1);
+                    checkAdd(y, x + 1);
+                    checkAdd(y + 1, x - 1);
+                    checkAdd(y + 1, x);
+                    checkAdd(y + 1, x + 1);
+                }
+            }
+        } };
+    auto drawAdj = [&]() {
+        for (unsigned y = 0; y < 16; ++y) {
+            for (unsigned x = 0; x < 25; ++x) {
+                if (adjMine[y][x] < 9 && adjMine[y][x] != 0) {
+                    drawMineCnt(adjMine[y][x], x * 32, y * 32);
+                }
+            }
+        }
+    };
     //lambda to draw 1 number with given y axis
     auto drawNum = [&](Digits digit, int xAis, int yAxis = 512) {
         auto nums = Sprite(TextureManager::texture["digits"]);
@@ -105,6 +118,36 @@ int main()
             xAxis += 21;
         }
     };
+    auto loadBrd = [&](int brdNum) {
+        ifstream brd("boards/testboard" + to_string(brdNum) + ".brd");
+        for (auto &row : board) {
+            for (auto &i : row) {
+                char tmp;
+                brd >> tmp;
+                tmp == '0' ? i = false : i = true;
+            }
+        }
+        flags = array<array<bool, 25>, 16>{};
+        adjMine = array<array<int, 25>, 16>{};
+        addAdj();
+    };
+    //randomize initialze board
+    auto randMap = [&](int mineNum = 50) {
+        array<bool, 400> origin{};
+        for (int i = 0; i < mineNum; ++i) {
+            origin[i] = true;
+        }
+        random_shuffle(origin.begin(), origin.end());
+        for (int k = 0; k < 400; ++k) {
+            int j = k / 25;
+            int i = k % 25;
+            board[j][i] = origin[k];
+        }
+        flags = array<array<bool, 25>, 16>{};
+        adjMine = array<array<int, 25>, 16>{};
+        addAdj();
+    };
+    randMap();
     while (window.isOpen()) {
         sf::Event event;
         Vector2i mousePos = sf::Mouse::getPosition(window);
@@ -169,6 +212,8 @@ int main()
         }
         //draw mine
         drawGeneric(mine, board);
+        //draw numbers
+        drawAdj();
         //draw flag
         if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
             int rowNum = mousePos.x / 32;
