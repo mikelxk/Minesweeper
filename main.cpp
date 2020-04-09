@@ -18,8 +18,9 @@ int main()
     sf::RenderWindow window(sf::VideoMode(800, 600), "Minesweeper");
     //texture name
     array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
-    //debug mode
-    bool debugMode{}, defeated{};
+    TileBoard tb;
+    //bool on switches
+    bool debugMode{}, defeated{}, mouseRight{}, mouseLeftBot{}, mouseLeftBoard{};
     //load texture
     for (auto s : textureName) {
         TextureManager::loadTexture(s);
@@ -49,6 +50,15 @@ int main()
                 }
             }
     } };
+    auto reverseDraw = [&](Texture &text, array<array<bool, 25>, 16> &toRevese) {
+        array<array<bool, 25>, 16> reversed{};
+        for (unsigned y = 0; y < 16; ++y) {
+            for (unsigned x = 0; x < 25; ++x) {
+                reversed[y][x] = !toRevese[y][x];
+            }
+        }
+        drawGeneric(text, reversed);
+    };
     //lambda to draw numbers on board
     auto drawMineCnt = [&](int num, int xAxis, int yAxis) {
         auto numSpirit = Sprite(TextureManager::texture["number_" + to_string(num)]);
@@ -147,19 +157,14 @@ int main()
         }
         redoBoard();
     };
-    //lambda to reaveal board with cascading
-    auto reveal = [&](int xAxis, int yAxis) {
-        boardRevealed[yAxis][xAxis] = true;
-        if (board[yAxis][xAxis]) {
-            defeated = true;
-        }
-    };
     randMap();
     while (window.isOpen()) {
         sf::Event event;
+        mouseRight = false;
+        mouseLeftBot = false;
         Vector2i mousePos = sf::Mouse::getPosition(window);
         //lambda to get mine count
-        auto getCount = [](array<array<bool, 25>, 16> cntBoard) {
+        auto getCount = [](array<array<bool, 25>, 16> &cntBoard) {
             int cnt{};
             for (auto row : cntBoard) {
                 for (auto i : row) {
@@ -170,8 +175,37 @@ int main()
             return cnt;
         };
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
+            switch (event.type) {
+            case sf::Event::Closed: {
                 window.close();
+                break;
+            }
+            case sf::Event::MouseButtonPressed: {
+                if (event.mouseButton.button == sf::Mouse::Right) {
+                    mouseRight = true;
+                }
+                else if (event.mouseButton.button == sf::Mouse::Left) {
+                    if (mousePos.y >= 512) {
+                        mouseLeftBot = true;
+                        if (mousePos.x >= 400 - 32 && mousePos.x < 432) {
+                            randMap();
+                        }
+                        else if (mousePos.x >= 560 - 64 && mousePos.x < 560) {
+                            debugMode = !debugMode;
+                        }
+                        else if (mousePos.x >= 560 && mousePos.x < 752) {
+                            int testNum = (mousePos.x - 560) / 64 + 1;
+                            loadBrd(testNum);
+                        }
+                    }
+                    else {
+                    }
+                }
+                break;
+            }
+            default:
+                break;
+            }
         }
         window.clear();
         //draw background
@@ -196,42 +230,18 @@ int main()
         window.draw(test3);
         //draw mine count
         drawCounter(getCount(board) - getCount(flags));
-        //mouse operation on bottons
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-            auto checkBotton = [&](Sprite sp, int num, bool reset = false, bool debugButton = false) {
-                auto spBound = sp.getGlobalBounds();
-                if (spBound.contains(Vector2f(mousePos))) {
-                    if (!reset && !debugButton) {
-                        loadBrd(num);
-                    }
-                    else if (reset && !debugButton) {
-                        randMap();
-                    }
-                    else if (debugButton) {
-                        debugMode = !debugMode;
-                    }
-                }
-            };
-            checkBotton(test1, 1);
-            checkBotton(test2, 2);
-            checkBotton(test3, 3);
-            checkBotton(faceHappy, 1, true);
-            checkBotton(debug, 1, false, true);
-            int rowNum = mousePos.x / 32;
-            int colNum = mousePos.y / 32;
-            if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16) {
-                reveal(rowNum, colNum);
-            }
-        }
         //draw mine
         drawGeneric(mine, board);
         //draw numbers
         drawAdj();
+        //draw tile
+        reverseDraw(tileHidden, boardRevealed);
         //draw flag
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+        if (mouseRight) {
             int rowNum = mousePos.x / 32;
             int colNum = mousePos.y / 32;
-            flags[colNum][rowNum] = !flags[colNum][rowNum];
+            if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16)
+                flags[colNum][rowNum] = !flags[colNum][rowNum];
         }
         drawGeneric(flag, flags);
         //debug mode
