@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <stack>
 #include <vector>
@@ -18,7 +19,7 @@ int main()
     //texture name
     array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
     //debug mode
-    bool debugMode{};
+    bool debugMode{}, defeated{};
     //load texture
     for (auto s : textureName) {
         TextureManager::loadTexture(s);
@@ -27,8 +28,10 @@ int main()
     Texture flag = TextureManager::texture["flag"];
     Texture tileHidden = TextureManager::texture["tile_hidden"];
     Texture tileRevealed = TextureManager::texture["tile_revealed"];
+    Sprite faceLose = Sprite(TextureManager::texture["face_lose"]);
+
     //load board from file
-    array<array<bool, 25>, 16> board{}, flags{}, fullBoard{};
+    array<array<bool, 25>, 16> board{}, flags{}, fullBoard{}, boardRevealed{};
     array<array<int, 25>, 16> adjMine{};
     for (auto &row : fullBoard) {
         for (auto &item : row) {
@@ -84,6 +87,12 @@ int main()
             }
         }
     };
+    auto redoBoard = [&]() {
+        flags = array<array<bool, 25>, 16>{};
+        adjMine = array<array<int, 25>, 16>{};
+        boardRevealed = array<array<bool, 25>, 16>{};
+        addAdj();
+    };
     //lambda to draw 1 number with given y axis
     auto drawNum = [&](Digits digit, int xAis, int yAxis = 512) {
         auto nums = Sprite(TextureManager::texture["digits"]);
@@ -104,12 +113,7 @@ int main()
         for (unsigned i = 0; i < 3; ++i) {
             int digit = mineCnt % 10;
             mineCnt /= 10;
-            if (digit) {
-                sd.push(digit);
-            }
-            else {
-                sd.push(0);
-            }
+            sd.push(digit);
         }
         while (!sd.empty()) {
             int digit = sd.top();
@@ -127,9 +131,7 @@ int main()
                 tmp == '0' ? i = false : i = true;
             }
         }
-        flags = array<array<bool, 25>, 16>{};
-        adjMine = array<array<int, 25>, 16>{};
-        addAdj();
+        redoBoard();
     };
     //randomize initialze board
     auto randMap = [&](int mineNum = 50) {
@@ -143,9 +145,14 @@ int main()
             int i = k % 25;
             board[j][i] = origin[k];
         }
-        flags = array<array<bool, 25>, 16>{};
-        adjMine = array<array<int, 25>, 16>{};
-        addAdj();
+        redoBoard();
+    };
+    //lambda to reaveal board with cascading
+    auto reveal = [&](int xAxis, int yAxis) {
+        boardRevealed[yAxis][xAxis] = true;
+        if (board[yAxis][xAxis]) {
+            defeated = true;
+        }
     };
     randMap();
     while (window.isOpen()) {
@@ -177,11 +184,12 @@ int main()
         auto debug = Sprite(TextureManager::texture["debug"]);
         int botPosX = 560; //position of test 1 botton
         faceHappy.setPosition(400 - 32, 512);
+        faceLose.setPosition(400 - 32, 512);
         debug.setPosition(botPosX - 64, 512);
         test1.setPosition(botPosX, 512);
         test2.setPosition(botPosX + 64, 512);
         test3.setPosition(botPosX + 64 + 64, 512);
-        window.draw(faceHappy);
+        defeated ? window.draw(faceLose) : window.draw(faceHappy);
         window.draw(debug);
         window.draw(test1);
         window.draw(test2);
@@ -209,6 +217,11 @@ int main()
             checkBotton(test3, 3);
             checkBotton(faceHappy, 1, true);
             checkBotton(debug, 1, false, true);
+            int rowNum = mousePos.x / 32;
+            int colNum = mousePos.y / 32;
+            if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16) {
+                reveal(rowNum, colNum);
+            }
         }
         //draw mine
         drawGeneric(mine, board);
@@ -220,7 +233,6 @@ int main()
             int colNum = mousePos.y / 32;
             flags[colNum][rowNum] = !flags[colNum][rowNum];
         }
-        drawGeneric(tileHidden, flags);
         drawGeneric(flag, flags);
         //debug mode
         if (debugMode) {
