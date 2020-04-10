@@ -23,7 +23,7 @@ int main()
     //number of correct flags
     unsigned totalTileRevealed{};
     //load texture
-    for (auto s : textureName) {
+    for (auto &s : textureName) {
         TextureManager::loadTexture(s);
     }
     Texture mine = TextureManager::texture["mine"];
@@ -164,8 +164,8 @@ int main()
         //lambda to get mine count
         auto getCount = [](array<array<bool, 25>, 16> &cntBoard) {
             unsigned cnt{};
-            for (auto row : cntBoard) {
-                for (auto i : row) {
+            for (auto &row : cntBoard) {
+                for (auto &i : row) {
                     if (i)
                         ++cnt;
                 }
@@ -225,10 +225,15 @@ int main()
                                 return;
                             }
                             else {
+                                if (!boardRevealed[y][x]) {
+                                    ++totalTileRevealed;
+                                }
                                 boardRevealed[y][x] = true;
                                 auto check = [&](int x, int y) {
                                     if (x >= 0 && x < 25 && y >= 0 && y < 16) {
-                                        ++totalTileRevealed;
+                                        if (!boardRevealed[y][x]) {
+                                            ++totalTileRevealed;
+                                        }
                                         boardRevealed[y][x] = true;
                                         revealBoard(x, y);
                                         return true;
