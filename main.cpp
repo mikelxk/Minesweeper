@@ -20,7 +20,7 @@ int main()
     array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
     TileBoard tb;
     //bool on switches
-    bool debugMode{}, defeated{}, mouseRight{}, mouseLeftBot{}, mouseLeftBoard{};
+    bool debugMode{}, defeated{}, win{};
     //load texture
     for (auto s : textureName) {
         TextureManager::loadTexture(s);
@@ -30,7 +30,6 @@ int main()
     Texture tileHidden = TextureManager::texture["tile_hidden"];
     Texture tileRevealed = TextureManager::texture["tile_revealed"];
     Sprite faceLose = Sprite(TextureManager::texture["face_lose"]);
-
     //load board from file
     array<array<bool, 25>, 16> board{}, flags{}, fullBoard{}, boardRevealed{};
     array<array<int, 25>, 16> adjMine{};
@@ -160,8 +159,6 @@ int main()
     randMap();
     while (window.isOpen()) {
         sf::Event event;
-        mouseRight = false;
-        mouseLeftBot = false;
         Vector2i mousePos = sf::Mouse::getPosition(window);
         //lambda to get mine count
         auto getCount = [](array<array<bool, 25>, 16> &cntBoard) {
@@ -182,11 +179,14 @@ int main()
             }
             case sf::Event::MouseButtonPressed: {
                 if (event.mouseButton.button == sf::Mouse::Right) {
-                    mouseRight = true;
+                    int rowNum = mousePos.x / 32;
+                    int colNum = mousePos.y / 32;
+                    if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16)
+                        flags[colNum][rowNum] = !flags[colNum][rowNum];
                 }
                 else if (event.mouseButton.button == sf::Mouse::Left) {
-                    if (mousePos.y >= 512) {
-                        mouseLeftBot = true;
+                    //mouse is on those bottons
+                    if (mousePos.y >= 512 && mousePos.y <= 512 + 64) {
                         if (mousePos.x >= 400 - 32 && mousePos.x < 432) {
                             randMap();
                         }
@@ -198,6 +198,7 @@ int main()
                             loadBrd(testNum);
                         }
                     }
+                    //mouse is on the board
                     else {
                     }
                 }
@@ -216,6 +217,7 @@ int main()
         auto test2 = Sprite(TextureManager::texture["test_2"]);
         auto test3 = Sprite(TextureManager::texture["test_3"]);
         auto debug = Sprite(TextureManager::texture["debug"]);
+        auto faceWin = Sprite(TextureManager::texture["face_win"]);
         int botPosX = 560; //position of test 1 botton
         faceHappy.setPosition(400 - 32, 512);
         faceLose.setPosition(400 - 32, 512);
@@ -223,7 +225,13 @@ int main()
         test1.setPosition(botPosX, 512);
         test2.setPosition(botPosX + 64, 512);
         test3.setPosition(botPosX + 64 + 64, 512);
-        defeated ? window.draw(faceLose) : window.draw(faceHappy);
+        window.draw(faceHappy);
+        if (defeated) {
+            window.draw(faceLose);
+        }
+        else if (win) {
+            window.draw(faceWin);
+        }
         window.draw(debug);
         window.draw(test1);
         window.draw(test2);
@@ -237,12 +245,6 @@ int main()
         //draw tile
         reverseDraw(tileHidden, boardRevealed);
         //draw flag
-        if (mouseRight) {
-            int rowNum = mousePos.x / 32;
-            int colNum = mousePos.y / 32;
-            if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16)
-                flags[colNum][rowNum] = !flags[colNum][rowNum];
-        }
         drawGeneric(flag, flags);
         //debug mode
         if (debugMode) {
