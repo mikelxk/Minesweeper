@@ -18,9 +18,10 @@ int main()
     sf::RenderWindow window(sf::VideoMode(800, 600), "Minesweeper");
     //texture name
     array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
-    TileBoard tb;
     //bool on switches
     bool debugMode{}, defeated{}, win{};
+    //number of correct flags
+    unsigned totalTileRevealed{};
     //load texture
     for (auto s : textureName) {
         TextureManager::loadTexture(s);
@@ -162,7 +163,7 @@ int main()
         Vector2i mousePos = sf::Mouse::getPosition(window);
         //lambda to get mine count
         auto getCount = [](array<array<bool, 25>, 16> &cntBoard) {
-            int cnt{};
+            unsigned cnt{};
             for (auto row : cntBoard) {
                 for (auto i : row) {
                     if (i)
@@ -178,17 +179,20 @@ int main()
                 break;
             }
             case sf::Event::MouseButtonPressed: {
+                int rowNum = mousePos.x / 32;
+                int colNum = mousePos.y / 32;
                 if (event.mouseButton.button == sf::Mouse::Right) {
-                    int rowNum = mousePos.x / 32;
-                    int colNum = mousePos.y / 32;
-                    if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16)
+                    if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16 && !boardRevealed[colNum][rowNum]) {
                         flags[colNum][rowNum] = !flags[colNum][rowNum];
+                    }
                 }
                 else if (event.mouseButton.button == sf::Mouse::Left) {
                     //mouse is on those bottons
                     if (mousePos.y >= 512 && mousePos.y <= 512 + 64) {
                         if (mousePos.x >= 400 - 32 && mousePos.x < 432) {
                             randMap();
+                            win = false;
+                            defeated = false;
                         }
                         else if (mousePos.x >= 560 - 64 && mousePos.x < 560) {
                             debugMode = !debugMode;
@@ -199,7 +203,67 @@ int main()
                         }
                     }
                     //mouse is on the board
-                    else {
+                    else if (mousePos.y < 512 && !flags[colNum][rowNum]) {
+                        //the tile revealed is mine
+                        if (board[colNum][rowNum]) {
+                            defeated = true;
+                            debugMode = true;
+                            for (unsigned y = 0; y < 16; ++y) {
+                                for (unsigned x = 0; x < 25; ++x) {
+                                    if (board[y][x])
+                                        boardRevealed[y][x] = true;
+                                }
+                            }
+                        }
+                        function<void(int, int)> revealBoard = [&](int x, int y) {
+                            //the tile revealed has number
+                            if (adjMine[y][x] <= 8 && adjMine[y][x] > 0) {
+                                boardRevealed[y][x] = true;
+                                return;
+                            }
+                            else if (adjMine[y][x] > 8 || flags[y][x]) {
+                                return;
+                            }
+                            else {
+                                boardRevealed[y][x] = true;
+                                auto check = [&](int x, int y) {
+                                    if (x >= 0 && x < 25 && y >= 0 && y < 16) {
+                                        ++totalTileRevealed;
+                                        boardRevealed[y][x] = true;
+                                        revealBoard(x, y);
+                                        return true;
+                                    }
+                                    else {
+                                        return false;
+                                    }
+                                };
+                                if (!boardRevealed[y - 1][x - 1]) {
+                                    check(x - 1, y - 1);
+                                }
+                                if (!boardRevealed[y][x - 1]) {
+                                    check(x - 1, y);
+                                }
+                                if (!boardRevealed[y + 1][x - 1]) {
+                                    check(x - 1, y + 1);
+                                }
+                                if (!boardRevealed[y - 1][x]) {
+                                    check(x, y - 1);
+                                }
+                                if (!boardRevealed[y + 1][x]) {
+                                    check(x, y + 1);
+                                }
+                                if (!boardRevealed[y - 1][x + 1]) {
+                                    check(x + 1, y - 1);
+                                }
+                                if (!boardRevealed[y][x + 1]) {
+                                    check(x + 1, y);
+                                }
+                                if (!boardRevealed[y + 1][x + 1]) {
+                                    check(x + 1, y + 1);
+                                }
+                            }
+                        };
+                        revealBoard(rowNum, colNum);
                     }
                 }
                 break;
@@ -221,16 +285,22 @@ int main()
         int botPosX = 560; //position of test 1 botton
         faceHappy.setPosition(400 - 32, 512);
         faceLose.setPosition(400 - 32, 512);
+        faceWin.setPosition(400 - 32, 512);
         debug.setPosition(botPosX - 64, 512);
         test1.setPosition(botPosX, 512);
         test2.setPosition(botPosX + 64, 512);
         test3.setPosition(botPosX + 64 + 64, 512);
-        window.draw(faceHappy);
+        if (totalTileRevealed == 400 - getCount(board)) {
+            win = true;
+        }
         if (defeated) {
             window.draw(faceLose);
         }
         else if (win) {
             window.draw(faceWin);
+        }
+        else {
+            window.draw(faceHappy);
         }
         window.draw(debug);
         window.draw(test1);
@@ -245,6 +315,7 @@ int main()
         //draw tile
         reverseDraw(tileHidden, boardRevealed);
         //draw flag
+        drawGeneric(tileHidden, flags);
         drawGeneric(flag, flags);
         //debug mode
         if (debugMode) {
