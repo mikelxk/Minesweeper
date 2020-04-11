@@ -4,9 +4,7 @@
 #include <array>
 #include <fstream>
 #include <functional>
-#include <iostream>
 #include <stack>
-#include <vector>
 using namespace std;
 using sf::Sprite;
 using sf::Texture;
@@ -20,10 +18,8 @@ int main()
     array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
     //bool on switches
     bool debugMode{}, defeated{}, win{};
-    //number of correct flags
-    unsigned totalTileRevealed{};
     //load texture
-    for (auto &s : textureName) {
+    for (auto &&s : textureName) {
         TextureManager::loadTexture(s);
     }
     Texture mine = TextureManager::texture["mine"];
@@ -40,7 +36,7 @@ int main()
         }
     }
     //lambda to draw given texture with given array
-    auto drawGeneric = [&](Texture &text, array<array<bool, 25>, 16> &toDraw) {
+    auto drawGeneric = [&window](Texture &text, array<array<bool, 25>, 16> &toDraw) {
         for (unsigned y = 0; y < 16; ++y) {
             for (unsigned x = 0; x < 25; ++x) {
                 if (toDraw[y][x]) {
@@ -101,6 +97,7 @@ int main()
         flags = array<array<bool, 25>, 16>{};
         adjMine = array<array<int, 25>, 16>{};
         boardRevealed = array<array<bool, 25>, 16>{};
+        debugMode = false;
         addAdj();
     };
     //lambda to draw 1 number with given y axis
@@ -134,8 +131,8 @@ int main()
     };
     auto loadBrd = [&](int brdNum) {
         ifstream brd("boards/testboard" + to_string(brdNum) + ".brd");
-        for (auto &row : board) {
-            for (auto &i : row) {
+        for (auto &&row : board) {
+            for (auto &&i : row) {
                 char tmp;
                 brd >> tmp;
                 tmp == '0' ? i = false : i = true;
@@ -164,8 +161,8 @@ int main()
         //lambda to get mine count
         auto getCount = [](array<array<bool, 25>, 16> &cntBoard) {
             unsigned cnt{};
-            for (auto &row : cntBoard) {
-                for (auto &i : row) {
+            for (auto &&row : cntBoard) {
+                for (auto &&i : row) {
                     if (i)
                         ++cnt;
                 }
@@ -215,60 +212,56 @@ int main()
                                 }
                             }
                         }
-                        function<void(int, int)> revealBoard = [&](int x, int y) {
-                            //the tile revealed has number
-                            if (adjMine[y][x] <= 8 && adjMine[y][x] > 0) {
-                                boardRevealed[y][x] = true;
-                                return;
-                            }
-                            else if (adjMine[y][x] > 8 || flags[y][x]) {
-                                return;
-                            }
-                            else {
-                                if (!boardRevealed[y][x]) {
-                                    ++totalTileRevealed;
+                        else {
+                            function<void(int, int)> revealBoard = [&](int x, int y) {
+                                //the tile revealed has number
+                                if (adjMine[y][x] <= 8 && adjMine[y][x] > 0) {
+                                    boardRevealed[y][x] = true;
+                                    return;
                                 }
-                                boardRevealed[y][x] = true;
-                                auto check = [&](int x, int y) {
-                                    if (x >= 0 && x < 25 && y >= 0 && y < 16) {
-                                        if (!boardRevealed[y][x]) {
-                                            ++totalTileRevealed;
+                                else if (adjMine[y][x] > 8 || flags[y][x]) {
+                                    return;
+                                }
+                                else {
+                                    boardRevealed[y][x] = true;
+                                    auto check = [&](int x, int y) {
+                                        if (x >= 0 && x < 25 && y >= 0 && y < 16) {
+                                            boardRevealed[y][x] = true;
+                                            revealBoard(x, y);
+                                            return true;
                                         }
-                                        boardRevealed[y][x] = true;
-                                        revealBoard(x, y);
-                                        return true;
+                                        else {
+                                            return false;
+                                        }
+                                    };
+                                    if (!boardRevealed[y - 1][x - 1]) {
+                                        check(x - 1, y - 1);
                                     }
-                                    else {
-                                        return false;
+                                    if (!boardRevealed[y][x - 1]) {
+                                        check(x - 1, y);
                                     }
-                                };
-                                if (!boardRevealed[y - 1][x - 1]) {
-                                    check(x - 1, y - 1);
+                                    if (!boardRevealed[y + 1][x - 1]) {
+                                        check(x - 1, y + 1);
+                                    }
+                                    if (!boardRevealed[y - 1][x]) {
+                                        check(x, y - 1);
+                                    }
+                                    if (!boardRevealed[y + 1][x]) {
+                                        check(x, y + 1);
+                                    }
+                                    if (!boardRevealed[y - 1][x + 1]) {
+                                        check(x + 1, y - 1);
+                                    }
+                                    if (!boardRevealed[y][x + 1]) {
+                                        check(x + 1, y);
+                                    }
+                                    if (!boardRevealed[y + 1][x + 1]) {
+                                        check(x + 1, y + 1);
+                                    }
                                 }
-                                if (!boardRevealed[y][x - 1]) {
-                                    check(x - 1, y);
-                                }
-                                if (!boardRevealed[y + 1][x - 1]) {
-                                    check(x - 1, y + 1);
-                                }
-                                if (!boardRevealed[y - 1][x]) {
-                                    check(x, y - 1);
-                                }
-                                if (!boardRevealed[y + 1][x]) {
-                                    check(x, y + 1);
-                                }
-                                if (!boardRevealed[y - 1][x + 1]) {
-                                    check(x + 1, y - 1);
-                                }
-                                if (!boardRevealed[y][x + 1]) {
-                                    check(x + 1, y);
-                                }
-                                if (!boardRevealed[y + 1][x + 1]) {
-                                    check(x + 1, y + 1);
-                                }
-                            }
-                        };
-                        revealBoard(rowNum, colNum);
+                            };
+                            revealBoard(rowNum, colNum);
+                        }
                     }
                 }
                 break;
@@ -295,7 +288,8 @@ int main()
         test1.setPosition(botPosX, 512);
         test2.setPosition(botPosX + 64, 512);
         test3.setPosition(botPosX + 64 + 64, 512);
-        if (totalTileRevealed == 400 - getCount(board)) {
+        unsigned numTileReveal = getCount(boardRevealed);
+        if (numTileReveal == 400 - getCount(board)) {
             win = true;
         }
         if (defeated) {

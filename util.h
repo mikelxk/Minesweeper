@@ -1,9 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include <array>
 #include <string>
 #include <unordered_map>
-#include <vector>
 class TextureManager {
 public:
     static std::unordered_map<std::string, sf::Texture> texture;
