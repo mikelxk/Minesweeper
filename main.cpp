@@ -30,10 +30,8 @@ int main()
     //load board from file
     array<array<bool, 25>, 16> board{}, flags{}, fullBoard{}, boardRevealed{};
     array<array<int, 25>, 16> adjMine{};
-    for (auto &row : fullBoard) {
-        for (auto &item : row) {
-            item = true;
-        }
+    for (auto &&row : fullBoard) {
+        row.fill(true);
     }
     //lambda to draw given texture with given array
     auto drawGeneric = [&window](Texture &text, array<array<bool, 25>, 16> &toDraw) {
@@ -143,9 +141,7 @@ int main()
     //randomize initialze board
     auto randMap = [&](int mineNum = 50) {
         array<bool, 400> origin{};
-        for (int i = 0; i < mineNum; ++i) {
-            origin[i] = true;
-        }
+        fill_n(origin.begin(), mineNum, true);
         random_shuffle(origin.begin(), origin.end());
         for (int k = 0; k < 400; ++k) {
             int j = k / 25;
@@ -162,10 +158,7 @@ int main()
         auto getCount = [](array<array<bool, 25>, 16> &cntBoard) {
             unsigned cnt{};
             for (auto &&row : cntBoard) {
-                for (auto &&i : row) {
-                    if (i)
-                        ++cnt;
-                }
+                cnt += count(row.begin(), row.end(), true);
             }
             return cnt;
         };
