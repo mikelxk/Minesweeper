@@ -1,4 +1,4 @@
-#include "util.h"
+﻿#include "util.h"
 #include <SFML/Graphics.hpp>
 #include <algorithm>
 #include <array>
@@ -15,11 +15,11 @@ int main()
     //load window
     sf::RenderWindow window(sf::VideoMode(800, 600), "Minesweeper");
     //texture name
-    array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
+    array<string, 20> textureName{ "debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed" };
     //bool on switches
     bool debugMode{}, defeated{}, win{};
     //load texture
-    for (auto &&s : textureName) {
+    for (auto&& s : textureName) {
         TextureManager::loadTexture(s);
     }
     Texture mine = TextureManager::texture["mine"];
@@ -30,11 +30,11 @@ int main()
     //load board from file
     array<array<bool, 25>, 16> board{}, flags{}, fullBoard{}, boardRevealed{};
     array<array<int, 25>, 16> adjMine{};
-    for (auto &&row : fullBoard) {
+    for (auto&& row : fullBoard) {
         row.fill(true);
     }
     //lambda to draw given texture with given array
-    auto drawGeneric = [&window](Texture &text, array<array<bool, 25>, 16> &toDraw) {
+    auto drawGeneric = [&window](Texture& text, array<array<bool, 25>, 16>& toDraw) {
         for (unsigned y = 0; y < 16; ++y) {
             for (unsigned x = 0; x < 25; ++x) {
                 if (toDraw[y][x]) {
@@ -43,8 +43,8 @@ int main()
                     window.draw(spirit);
                 }
             }
-    } };
-    auto reverseDraw = [&](Texture &text, array<array<bool, 25>, 16> &toRevese) {
+        } };
+    auto reverseDraw = [&](Texture& text, array<array<bool, 25>, 16>& toRevese) {
         array<array<bool, 25>, 16> reversed{};
         for (unsigned y = 0; y < 16; ++y) {
             for (unsigned x = 0; x < 25; ++x) {
@@ -61,8 +61,8 @@ int main()
     };
     //lambda to add adjacent counter
     auto addAdj = [&]() {
-        auto checkAdd = [&](int yAxis,int xAxis){
-            if(xAxis>=0&&xAxis<25&&yAxis>=0&&yAxis<16) {
+        auto checkAdd = [&](int yAxis, int xAxis) {
+            if (xAxis >= 0 && xAxis < 25 && yAxis >= 0 && yAxis < 16) {
                 ++adjMine[yAxis][xAxis];
             }
         };
@@ -96,6 +96,8 @@ int main()
         adjMine = array<array<int, 25>, 16>{};
         boardRevealed = array<array<bool, 25>, 16>{};
         debugMode = false;
+        defeated = false;
+        win = false;
         addAdj();
     };
     //lambda to draw 1 number with given y axis
@@ -129,8 +131,8 @@ int main()
     };
     auto loadBrd = [&](int brdNum) {
         ifstream brd("boards/testboard" + to_string(brdNum) + ".brd");
-        for (auto &&row : board) {
-            for (auto &&i : row) {
+        for (auto&& row : board) {
+            for (auto&& i : row) {
                 char tmp;
                 brd >> tmp;
                 tmp == '0' ? i = false : i = true;
@@ -155,9 +157,9 @@ int main()
         sf::Event event;
         Vector2i mousePos = sf::Mouse::getPosition(window);
         //lambda to get mine count
-        auto getCount = [](array<array<bool, 25>, 16> &cntBoard) {
+        auto getCount = [](array<array<bool, 25>, 16>& cntBoard) {
             unsigned cnt{};
-            for (auto &&row : cntBoard) {
+            for (auto&& row : cntBoard) {
                 cnt += count(row.begin(), row.end(), true);
             }
             return cnt;
@@ -171,7 +173,7 @@ int main()
             case sf::Event::MouseButtonPressed: {
                 int rowNum = mousePos.x / 32;
                 int colNum = mousePos.y / 32;
-                if (event.mouseButton.button == sf::Mouse::Right) {
+                if (event.mouseButton.button == sf::Mouse::Right && !defeated) {
                     if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16 && !boardRevealed[colNum][rowNum]) {
                         flags[colNum][rowNum] = !flags[colNum][rowNum];
                     }
@@ -193,6 +195,9 @@ int main()
                         }
                     }
                     //mouse is on the board
+                    else if (defeated) {
+                        break;
+                    }
                     else if (mousePos.y < 512 && !flags[colNum][rowNum]) {
                         //the tile revealed is mine
                         if (board[colNum][rowNum]) {
@@ -218,39 +223,19 @@ int main()
                                 else {
                                     boardRevealed[y][x] = true;
                                     auto check = [&](int x, int y) {
-                                        if (x >= 0 && x < 25 && y >= 0 && y < 16) {
+                                        if (x >= 0 && x < 25 && y >= 0 && y < 16&& !boardRevealed[y][x]&&!flags[y][x]) {
                                             boardRevealed[y][x] = true;
                                             revealBoard(x, y);
-                                            return true;
-                                        }
-                                        else {
-                                            return false;
                                         }
                                     };
-                                    if (!boardRevealed[y - 1][x - 1]) {
                                         check(x - 1, y - 1);
-                                    }
-                                    if (!boardRevealed[y][x - 1]) {
                                         check(x - 1, y);
-                                    }
-                                    if (!boardRevealed[y + 1][x - 1]) {
                                         check(x - 1, y + 1);
-                                    }
-                                    if (!boardRevealed[y - 1][x]) {
                                         check(x, y - 1);
-                                    }
-                                    if (!boardRevealed[y + 1][x]) {
                                         check(x, y + 1);
-                                    }
-                                    if (!boardRevealed[y - 1][x + 1]) {
                                         check(x + 1, y - 1);
-                                    }
-                                    if (!boardRevealed[y][x + 1]) {
                                         check(x + 1, y);
-                                    }
-                                    if (!boardRevealed[y + 1][x + 1]) {
-                                        check(x + 1, y + 1);
-                                    }
+                                        check(x + 1, y + 1);                            
                                 }
                             };
                             revealBoard(rowNum, colNum);
@@ -263,7 +248,7 @@ int main()
                 break;
             }
         }
-        window.clear();
+        window.clear(sf::Color::White);
         //draw background
         drawGeneric(tileRevealed, fullBoard);
         //draw non-variant buttons
@@ -282,7 +267,7 @@ int main()
         test2.setPosition(botPosX + 64, 512);
         test3.setPosition(botPosX + 64 + 64, 512);
         unsigned numTileReveal = getCount(boardRevealed);
-        if (numTileReveal == 400 - getCount(board)) {
+        if (numTileReveal == 400 - getCount(board) && board==flags) {
             win = true;
         }
         if (defeated) {
