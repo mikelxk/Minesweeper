@@ -7,7 +7,7 @@ public:
     static std::unordered_map<std::string, sf::Texture> texture;
     static void loadTexture(std::string textureName)
     {
-        std::string filePath = "images/" + textureName + ".png";
+        std::string filePath = "../../images/" + textureName + ".png";
         texture[textureName].loadFromFile(filePath);
     }
 };

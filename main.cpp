@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <fstream>
+#include <random>
 #include <functional>
 #include <stack>
 using namespace std;
@@ -15,11 +16,12 @@ int main()
     //load window
     sf::RenderWindow window(sf::VideoMode(800, 600), "Minesweeper");
     //texture name
-    array<string, 20> textureName{ "debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed" };
+    array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
     //bool on switches
     bool debugMode{}, defeated{}, win{};
     //load texture
-    for (auto&& s : textureName) {
+    for (auto &&s : textureName)
+    {
         TextureManager::loadTexture(s);
     }
     Texture mine = TextureManager::texture["mine"];
@@ -30,11 +32,12 @@ int main()
     //load board from file
     array<array<bool, 25>, 16> board{}, flags{}, fullBoard{}, boardRevealed{};
     array<array<int, 25>, 16> adjMine{};
-    for (auto&& row : fullBoard) {
+    for (auto &&row : fullBoard)
+    {
         row.fill(true);
     }
     //lambda to draw given texture with given array
-    auto drawGeneric = [&window](Texture& text, array<array<bool, 25>, 16>& toDraw) {
+    auto drawGeneric = [&window](Texture &text, array<array<bool, 25>, 16> &toDraw) {
         for (unsigned y = 0; y < 16; ++y) {
             for (unsigned x = 0; x < 25; ++x) {
                 if (toDraw[y][x]) {
@@ -44,10 +47,12 @@ int main()
                 }
             }
         } };
-    auto reverseDraw = [&](Texture& text, array<array<bool, 25>, 16>& toRevese) {
+    auto reverseDraw = [&](Texture &text, array<array<bool, 25>, 16> &toRevese) {
         array<array<bool, 25>, 16> reversed{};
-        for (unsigned y = 0; y < 16; ++y) {
-            for (unsigned x = 0; x < 25; ++x) {
+        for (unsigned y = 0; y < 16; ++y)
+        {
+            for (unsigned x = 0; x < 25; ++x)
+            {
                 reversed[y][x] = !toRevese[y][x];
             }
         }
@@ -83,9 +88,12 @@ int main()
             }
         } };
     auto drawAdj = [&]() {
-        for (unsigned y = 0; y < 16; ++y) {
-            for (unsigned x = 0; x < 25; ++x) {
-                if (adjMine[y][x] < 9 && adjMine[y][x] != 0) {
+        for (unsigned y = 0; y < 16; ++y)
+        {
+            for (unsigned x = 0; x < 25; ++x)
+            {
+                if (adjMine[y][x] < 9 && adjMine[y][x] != 0)
+                {
                     drawMineCnt(adjMine[y][x], x * 32, y * 32);
                 }
             }
@@ -111,18 +119,21 @@ int main()
     auto drawCounter = [&](int mineCnt) {
         int xAxis{};
         stack<int> sd;
-        if (mineCnt < 0) {
+        if (mineCnt < 0)
+        {
             mineCnt = -mineCnt;
             drawNum(negative, xAxis);
             xAxis += 21;
         }
         //make sure there's 3 digit available
-        for (unsigned i = 0; i < 3; ++i) {
+        for (unsigned i = 0; i < 3; ++i)
+        {
             int digit = mineCnt % 10;
             mineCnt /= 10;
             sd.push(digit);
         }
-        while (!sd.empty()) {
+        while (!sd.empty())
+        {
             int digit = sd.top();
             sd.pop();
             drawNum((Digits)digit, xAxis);
@@ -131,8 +142,10 @@ int main()
     };
     auto loadBrd = [&](int brdNum) {
         ifstream brd("boards/testboard" + to_string(brdNum) + ".brd");
-        for (auto&& row : board) {
-            for (auto&& i : row) {
+        for (auto &&row : board)
+        {
+            for (auto &&i : row)
+            {
                 char tmp;
                 brd >> tmp;
                 tmp == '0' ? i = false : i = true;
@@ -144,8 +157,11 @@ int main()
     auto randMap = [&](int mineNum = 50) {
         array<bool, 400> origin{};
         fill_n(origin.begin(), mineNum, true);
-        random_shuffle(origin.begin(), origin.end());
-        for (int k = 0; k < 400; ++k) {
+        random_device rd;
+        mt19937 g(rd());
+        shuffle(origin.begin(), origin.end(),g);
+        for (int k = 0; k < 400; ++k)
+        {
             int j = k / 25;
             int i = k % 25;
             board[j][i] = origin[k];
@@ -153,89 +169,112 @@ int main()
         redoBoard();
     };
     randMap();
-    while (window.isOpen()) {
+    while (window.isOpen())
+    {
         sf::Event event;
         Vector2i mousePos = sf::Mouse::getPosition(window);
         //lambda to get mine count
-        auto getCount = [](array<array<bool, 25>, 16>& cntBoard) {
+        auto getCount = [](array<array<bool, 25>, 16> &cntBoard) {
             unsigned cnt{};
-            for (auto&& row : cntBoard) {
+            for (auto &&row : cntBoard)
+            {
                 cnt += count(row.begin(), row.end(), true);
             }
             return cnt;
         };
-        while (window.pollEvent(event)) {
-            switch (event.type) {
-            case sf::Event::Closed: {
+        while (window.pollEvent(event))
+        {
+            switch (event.type)
+            {
+            case sf::Event::Closed:
+            {
                 window.close();
                 break;
             }
-            case sf::Event::MouseButtonPressed: {
+            case sf::Event::MouseButtonPressed:
+            {
                 int rowNum = mousePos.x / 32;
                 int colNum = mousePos.y / 32;
-                if (event.mouseButton.button == sf::Mouse::Right && !defeated) {
-                    if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16 && !boardRevealed[colNum][rowNum]) {
+                if (event.mouseButton.button == sf::Mouse::Right && !defeated)
+                {
+                    if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16 && !boardRevealed[colNum][rowNum])
+                    {
                         flags[colNum][rowNum] = !flags[colNum][rowNum];
                     }
                 }
-                else if (event.mouseButton.button == sf::Mouse::Left) {
+                else if (event.mouseButton.button == sf::Mouse::Left)
+                {
                     //mouse is on those bottons
-                    if (mousePos.y >= 512 && mousePos.y <= 512 + 64) {
-                        if (mousePos.x >= 400 - 32 && mousePos.x < 432) {
+                    if (mousePos.y >= 512 && mousePos.y <= 512 + 64)
+                    {
+                        if (mousePos.x >= 400 - 32 && mousePos.x < 432)
+                        {
                             randMap();
                             win = false;
                             defeated = false;
                         }
-                        else if (mousePos.x >= 560 - 64 && mousePos.x < 560) {
+                        else if (mousePos.x >= 560 - 64 && mousePos.x < 560)
+                        {
                             debugMode = !debugMode;
                         }
-                        else if (mousePos.x >= 560 && mousePos.x < 752) {
+                        else if (mousePos.x >= 560 && mousePos.x < 752)
+                        {
                             int testNum = (mousePos.x - 560) / 64 + 1;
                             loadBrd(testNum);
                         }
                     }
                     //mouse is on the board
-                    else if (defeated) {
+                    else if (defeated)
+                    {
                         break;
                     }
-                    else if (mousePos.y < 512 && !flags[colNum][rowNum]) {
+                    else if (mousePos.y < 512 && !flags[colNum][rowNum])
+                    {
                         //the tile revealed is mine
-                        if (board[colNum][rowNum]) {
+                        if (board[colNum][rowNum])
+                        {
                             defeated = true;
                             debugMode = true;
-                            for (unsigned y = 0; y < 16; ++y) {
-                                for (unsigned x = 0; x < 25; ++x) {
+                            for (unsigned y = 0; y < 16; ++y)
+                            {
+                                for (unsigned x = 0; x < 25; ++x)
+                                {
                                     if (board[y][x])
                                         boardRevealed[y][x] = true;
                                 }
                             }
                         }
-                        else {
+                        else
+                        {
                             function<void(int, int)> revealBoard = [&](int x, int y) {
                                 //the tile revealed has number
-                                if (adjMine[y][x] <= 8 && adjMine[y][x] > 0) {
+                                if (adjMine[y][x] <= 8 && adjMine[y][x] > 0)
+                                {
                                     boardRevealed[y][x] = true;
                                     return;
                                 }
-                                else if (adjMine[y][x] > 8 || flags[y][x]) {
+                                else if (adjMine[y][x] > 8 || flags[y][x])
+                                {
                                     return;
                                 }
-                                else {
+                                else
+                                {
                                     boardRevealed[y][x] = true;
                                     auto check = [&](int x, int y) {
-                                        if (x >= 0 && x < 25 && y >= 0 && y < 16&& !boardRevealed[y][x]&&!flags[y][x]) {
+                                        if (x >= 0 && x < 25 && y >= 0 && y < 16 && !boardRevealed[y][x] && !flags[y][x])
+                                        {
                                             boardRevealed[y][x] = true;
                                             revealBoard(x, y);
                                         }
                                     };
-                                        check(x - 1, y - 1);
-                                        check(x - 1, y);
-                                        check(x - 1, y + 1);
-                                        check(x, y - 1);
-                                        check(x, y + 1);
-                                        check(x + 1, y - 1);
-                                        check(x + 1, y);
-                                        check(x + 1, y + 1);                            
+                                    check(x - 1, y - 1);
+                                    check(x - 1, y);
+                                    check(x - 1, y + 1);
+                                    check(x, y - 1);
+                                    check(x, y + 1);
+                                    check(x + 1, y - 1);
+                                    check(x + 1, y);
+                                    check(x + 1, y + 1);
                                 }
                             };
                             revealBoard(rowNum, colNum);
@@ -267,16 +306,20 @@ int main()
         test2.setPosition(botPosX + 64, 512);
         test3.setPosition(botPosX + 64 + 64, 512);
         unsigned numTileReveal = getCount(boardRevealed);
-        if (numTileReveal == 400 - getCount(board) && board==flags) {
+        if (numTileReveal == 400 - getCount(board) && board == flags)
+        {
             win = true;
         }
-        if (defeated) {
+        if (defeated)
+        {
             window.draw(faceLose);
         }
-        else if (win) {
+        else if (win)
+        {
             window.draw(faceWin);
         }
-        else {
+        else
+        {
             window.draw(faceHappy);
         }
         window.draw(debug);
@@ -295,7 +338,8 @@ int main()
         drawGeneric(tileHidden, flags);
         drawGeneric(flag, flags);
         //debug mode
-        if (debugMode) {
+        if (debugMode)
+        {
             drawGeneric(mine, board);
         }
         window.display();
