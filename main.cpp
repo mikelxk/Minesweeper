@@ -209,7 +209,7 @@ int main()
             case sf::Event::MouseButtonPressed: {
                 int rowNum = mousePos.x / 32;
                 int colNum = mousePos.y / 32;
-                if (event.mouseButton.button == sf::Mouse::Right && !defeated) {
+                if (event.mouseButton.button == sf::Mouse::Right && !defeated && !win) {
                     if (rowNum < 25 && rowNum >= 0 && colNum >= 0 && colNum < 16 && !boardRevealed[colNum][rowNum]) {
                         flags[colNum][rowNum] = !flags[colNum][rowNum];
                     }
@@ -275,8 +275,8 @@ int main()
         test1.setPosition(botPosX, 512);
         test2.setPosition(botPosX + 64, 512);
         test3.setPosition(botPosX + 64 + 64, 512);
-        unsigned numTileReveal = getCount(boardRevealed);
-        if (numTileReveal == 400 - getCount(board) && board == flags) {
+        int numTileReveal = getCount(boardRevealed);
+        if (numTileReveal == 400 - getCount(board)) {
             win = true;
         }
         if (defeated) {
