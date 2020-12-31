@@ -5,7 +5,7 @@
 class TextureManager {
 public:
     static std::unordered_map<std::string, sf::Texture> texture;
-    static void loadTexture(std::string textureName)
+    static void loadTexture(const std::string &textureName)
     {
         std::string filePath = "../../images/" + textureName + ".png";
         texture[textureName].loadFromFile(filePath);
