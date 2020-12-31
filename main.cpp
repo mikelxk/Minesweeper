@@ -4,6 +4,7 @@
 #include <array>
 #include <fstream>
 #include <functional>
+#include <numeric>
 #include <random>
 #include <stack>
 #include <vector>
@@ -31,12 +32,13 @@ int main()
     Sprite faceLose = Sprite(TextureManager::texture["face_lose"]);
     //load board from file
     array<array<bool, 25>, 16> board{}, flags{}, fullBoard{}, boardRevealed{};
-    array<array<int, 25>, 16> adjMine{};
+    // array<array<int, 25>, 16> adjMine{};
+    vector<vector<int>> adjMine(16, vector<int>(25));
     for (auto &&row : fullBoard) {
         row.fill(true);
     }
     //lambda to draw given texture with given array
-    auto drawGeneric = [&window](Texture &text, array<array<bool, 25>, 16> &toDraw) {
+    auto drawGeneric = [&window](Texture &text, auto &toDraw) {
         for (unsigned y = 0; y < toDraw.size(); ++y) {
             for (unsigned x = 0; x < toDraw[y].size(); ++x) {
                 if (toDraw[y][x]) {
@@ -47,14 +49,15 @@ int main()
             }
         }
     };
-    auto reverseDraw = [&](Texture &text, array<array<bool, 25>, 16> &toRevese) {
-        array<array<bool, 25>, 16> reversed{};
-        for (unsigned y = 0; y < reversed.size(); ++y) {
-            for (unsigned x = 0; x < reversed[y].size(); ++x) {
-                reversed[y][x] = !toRevese[y][x];
-            }
-        }
-        drawGeneric(text, reversed);
+    //clear a 2-d bool board
+    auto clearBoard = [](auto &board) {
+        for_each(board.begin(), board.end(), [](auto &line) { fill(line.begin(), line.end(), false); });
+    };
+    auto reverseDraw = [&](Texture &text, auto toReverse) {
+        for_each(toReverse.begin(), toReverse.end(), [](auto &row) {
+            transform(row.begin(), row.end(), row.begin(), logical_not<bool>());
+        });
+        drawGeneric(text, toReverse);
     };
     //lambda to draw numbers on board
     auto drawMineCnt = [&](int num, int xAxis, int yAxis) {
@@ -69,8 +72,8 @@ int main()
                 ++adjMine[yAxis][xAxis];
             }
         };
-        for (int y = 0; y < 16; ++y) {
-            for (int x = 0; x < 25; ++x) {
+        for (unsigned y = 0; y < adjMine.size(); ++y) {
+            for (unsigned x = 0; x < adjMine[y].size(); ++x) {
                 if (board[y][x]) {
                     //make it 9 an unreachable value
                     adjMine[y][x] = 9;
@@ -95,9 +98,9 @@ int main()
         }
     };
     auto redoBoard = [&]() {
-        flags = array<array<bool, 25>, 16>{};
-        adjMine = array<array<int, 25>, 16>{};
-        boardRevealed = array<array<bool, 25>, 16>{};
+        clearBoard(flags);
+        clearBoard(adjMine);
+        clearBoard(boardRevealed);
         debugMode = false;
         defeated = false;
         win = false;
@@ -107,7 +110,7 @@ int main()
     auto drawNum = [&](Digits digit, int xAis, int yAxis = 512) {
         auto nums = Sprite(TextureManager::texture["digits"]);
         nums.setTextureRect(sf::IntRect(digit * 21, 0, 21, 32));
-        nums.setPosition(xAis, yAxis);
+        nums.setPosition((float)xAis, (float)yAxis);
         window.draw(nums);
     };
     //lambda to draw number in minecounter(depends on drawNum)
@@ -145,7 +148,7 @@ int main()
     };
     //randomize initialze board
     auto randMap = [&](int mineNum = 50) {
-        deque<bool> origin(400);
+        vector<bool> origin(400);
         fill_n(origin.begin(), mineNum, true);
         random_device rd;
         mt19937 g(rd());
@@ -163,11 +166,9 @@ int main()
         Vector2i mousePos = sf::Mouse::getPosition(window);
         //lambda to get mine count
         auto getCount = [](auto &cntBoard) {
-            unsigned cnt{};
-            for (auto &&row : cntBoard) {
-                cnt += count(row.begin(), row.end(), true);
-            }
-            return cnt;
+            return accumulate(cntBoard.begin(), cntBoard.end(), 0, [](int val, auto &row) {
+                return val + count(row.begin(), row.end(), true);
+            });
         };
         while (window.pollEvent(event)) {
             switch (event.type) {
