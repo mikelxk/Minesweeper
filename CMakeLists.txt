@@ -3,7 +3,7 @@ project(minesweeper VERSION 0.1.0)
 
 include(CTest)
 enable_testing()
-find_package(SFML 2 COMPONENTS graphics REQUIRED)
+find_package(SFML 2.5 COMPONENTS graphics REQUIRED)
 add_executable(minesweeper main.cpp)
 target_link_libraries(minesweeper sfml-graphics)
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

@@ -13,10 +13,17 @@ using sf::Sprite;
 using sf::Texture;
 using sf::Vector2f;
 using sf::Vector2i;
+//clear 2-d bool array
+template <typename T>
+void clearBoard(T &board)
+{
+    for_each(board.begin(), board.end(), [](auto &line) { fill(line.begin(), line.end(), false); });
+};
 int main()
 {
     //load window
     sf::RenderWindow window(sf::VideoMode(800, 600), "Minesweeper");
+    int numTile = 400;
     //texture name
     array<string, 20> textureName{"debug", "digits", "face_happy", "face_lose", "face_win", "flag", "mine", "number_1", "number_2", "number_3", "number_4", "number_5", "number_6", "number_7", "number_8", "test_1", "test_2", "test_3", "tile_hidden", "tile_revealed"};
     //bool on switches
@@ -48,10 +55,6 @@ int main()
                 }
             }
         }
-    };
-    //clear a 2-d bool board
-    auto clearBoard = [](auto &board) {
-        for_each(board.begin(), board.end(), [](auto &line) { fill(line.begin(), line.end(), false); });
     };
     auto reverseDraw = [&](Texture &text, auto toReverse) {
         for_each(toReverse.begin(), toReverse.end(), [](auto &row) {
@@ -148,7 +151,7 @@ int main()
     };
     //randomize initialze board
     auto randMap = [&](int mineNum = 50) {
-        vector<bool> origin(400);
+        vector<bool> origin(numTile);
         fill_n(origin.begin(), mineNum, true);
         random_device rd;
         mt19937 g(rd());
@@ -159,6 +162,33 @@ int main()
             board[j][i] = origin[k];
         }
         redoBoard();
+    };
+    function<void(int, int)> revealBoard = [&](int x, int y) {
+        //the tile revealed has number
+        if (adjMine[y][x] <= 8 && adjMine[y][x] > 0) {
+            boardRevealed[y][x] = true;
+            return;
+        }
+        else if (adjMine[y][x] > 8 || flags[y][x]) {
+            return;
+        }
+        else {
+            boardRevealed[y][x] = true;
+            auto check = [&](int x, int y) {
+                if (x >= 0 && x < 25 && y >= 0 && y < 16 && !boardRevealed[y][x] && !flags[y][x]) {
+                    boardRevealed[y][x] = true;
+                    revealBoard(x, y);
+                }
+            };
+            check(x - 1, y - 1);
+            check(x - 1, y);
+            check(x - 1, y + 1);
+            check(x, y - 1);
+            check(x, y + 1);
+            check(x + 1, y - 1);
+            check(x + 1, y);
+            check(x + 1, y + 1);
+        }
     };
     randMap();
     while (window.isOpen()) {
@@ -217,33 +247,6 @@ int main()
                             }
                         }
                         else {
-                            function<void(int, int)> revealBoard = [&](int x, int y) {
-                                //the tile revealed has number
-                                if (adjMine[y][x] <= 8 && adjMine[y][x] > 0) {
-                                    boardRevealed[y][x] = true;
-                                    return;
-                                }
-                                else if (adjMine[y][x] > 8 || flags[y][x]) {
-                                    return;
-                                }
-                                else {
-                                    boardRevealed[y][x] = true;
-                                    auto check = [&](int x, int y) {
-                                        if (x >= 0 && x < 25 && y >= 0 && y < 16 && !boardRevealed[y][x] && !flags[y][x]) {
-                                            boardRevealed[y][x] = true;
-                                            revealBoard(x, y);
-                                        }
-                                    };
-                                    check(x - 1, y - 1);
-                                    check(x - 1, y);
-                                    check(x - 1, y + 1);
-                                    check(x, y - 1);
-                                    check(x, y + 1);
-                                    check(x + 1, y - 1);
-                                    check(x + 1, y);
-                                    check(x + 1, y + 1);
-                                }
-                            };
                             revealBoard(rowNum, colNum);
                         }
                     }
