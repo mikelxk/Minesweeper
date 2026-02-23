@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "dependencies": [
+    "sfml"
+  ],
+  "builtin-baseline": "05442024c3fda64320bd25d2251cc9807b84fb6f",
+  "overrides": [
+    { "name": "sfml", "version": "2.6.2" }
+  ]
+}
